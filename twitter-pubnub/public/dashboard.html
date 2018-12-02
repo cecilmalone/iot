@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Dashboard Real Time</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="http://bit.ly/cdn-bootstrap-css">
+    <link rel="stylesheet" href="http://bit.ly/cdn-bootstrap-theme">
+    <style>
+        body {
+            background-color: #012e44;
+            color: #fff;
+        }
+        .header {
+            padding: 10px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 20px;
+            color: #fff;
+        }
+        .element div.content-empty {
+            text-align: center;
+        }
+        .element small.tweet {
+            font-size: 14px;
+        }
+        .element p.tweet {
+            font-size: 22px;
+        }
+        .card {
+            background-color: #165675;
+            border-radius: 5px;
+            min-height: 400px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 0 10px;
+        }
+        .empty {
+            text-align: center;
+            font-size: 30px;
+            color: #303030;
+        }
+        .area-tweet {
+            background-color: #1c5e7d;
+            margin-bottom: 5px;
+            border-bottom: solid 1px #012e44;
+            padding: 5px;
+        }
+        .area-kpi-task {
+            text-align: center;
+            font-size: 10em;
+        }
+    </style>
+    <script src="http://bit.ly/cdn-bootstrap-jq"></script>
+    
+    <script src="http://pubnub.a.ssl.fastly.net/pubnub.min.js"></script>
+    
+    <script>
+        let WebSocket = PUBNUB.ws;
+        const PUB_KEY = "pub-c-396abf8c-dafb-4394-b29e-7914140926e7";
+        const SUB_KEY = "sub-c-0bdcd21c-f648-11e8-b085-b2b44c5b7fba";
+        let ws = new WebSocket(`ws://pubsub.pubnub.com/${PUB_KEY}/${SUB_KEY}/node-red`);
+        let ws1 = new WebSocket(`ws://pubsub.pubnub.com/${PUB_KEY}/${SUB_KEY}/personal`);
+        let tweets = [];
+        let tweets_personal = [];
+        let taskCount = 0;
+        let renderTwitterMsg = function() {
+            let isAppend = false;
+            for (var x = 0; x < tweets.length; x++) {
+                var tweet = tweets[x];
+                var payload = tweet.payload;
+                var name = tweet.tweet.user.name;
+                $(".widget01 .element .content-empty").hide();
+                
+                //Hack to avoid append the same payload
+                var hasElementAppended = ($(".widget01 .element .area-tweet p.tweet"));
+                if (!hasElementAppended[x] || (hasElementAppended[x] && hasElementAppended[x].innerHTML !== payload)) {
+                    isAppend = true;
+                }
+                if (isAppend) {
+                    $(".widget01 .element").prepend("<div class='area-tweet'><small class='tweet'>" + name + "</small><p class='tweet'>" + payload + "</p></div>");
+                }
+            }
+        };
+        var renderKPITaskMsg = function(message) {
+            var count = taskCount + 1;
+            $(".widget03 .element .content-empty").hide();
+            $(".widget03 .element").html("<div class='area-kpi-task'>"+ count +"</div>");
+        };
+
+        let renderPersonalTwitterMsg = function() {
+            let isAppend = false;
+            for (var x = 0; x < tweets_personal.length; x++) {
+                var tweet = tweets_personal[x];
+                var payload = tweet.payload;
+                var name = tweet.tweet.user.name;
+                $(".widget02 .element .content-empty").hide();
+                
+                //Hack to avoid append the same payload
+                var hasElementAppended = ($(".widget02 .element .area-tweet p.tweet"));
+                if (!hasElementAppended[x] || (hasElementAppended[x] && hasElementAppended[x].innerHTML !== payload)) {
+                    isAppend = true;
+                }
+                if (isAppend) {
+                    $(".widget02 .element").prepend("<div class='area-tweet'><small class='tweet'>" + name + "</small><p class='tweet'>" + payload + "</p></div>");
+                }
+            }
+        };
+        
+        ws.onopen = function(e) {
+            console.log('Connection to server opened');
+        };
+        ws1.onopen = function(e) {
+            console.log('Connection to server opened');
+        };
+        ws.onmessage = function(message) {
+            try {
+                switch (message.data.type) {
+                    case "twitter":
+                        if (!tweets.length) {
+                            tweets.push(message.data.msg);
+                        } else {
+                            tweets.forEach(function(tweet) {
+                                if (tweet.payload !== message.data.msg.payload) {
+                                    tweets.push(message.data.msg);
+                                }
+                            });
+                        }
+                        renderTwitterMsg();
+                        break;
+                    case "task":
+                        renderKPITaskMsg(message);
+                        break;    
+                    default:
+                        // ...
+                }
+            } catch (e) {
+                console.log('This doesn\'t look like a valid JSON: ', message.data);
+                return;
+            }
+        };
+
+        ws1.onmessage = function(message) {
+            try {
+                switch (message.data.type) {
+                    case "personal":
+                        if (!tweets_personal.length) {
+                            tweets_personal.push(message.data.msg);
+                        } else {
+                            tweets_personal.forEach(function(tweet) {
+                                if (tweet.payload !== message.data.msg.payload) {
+                                    tweets_personal.push(message.data.msg);
+                                }
+                            });
+                        }
+                        renderPersonalTwitterMsg();
+                        break;    
+                    default:
+                        // ...
+                }
+            } catch (e) {
+                console.log('This doesn\'t look like a valid JSON: ', message.data);
+                return;
+            }
+        };
+        ws.onerror = function(e) { console.log(e); };
+        ws.onclose = function(e) { console.log(e); };
+        ws1.onerror = function(e) { console.log(e); };
+        ws1.onclose = function(e) { console.log(e); };
+    </script>
+   
+</head>
+<body lang="en">
+	<div class="vertical-center">
+        <div class="container-fluid">
+            
+            <div class="col-xs-12 header">Dashboard</div>
+            <small>#KetchupNaPizza</small>
+            <small>https://malone.mybluemix.net/red/</small>
+            
+            <div class="row">
+                <div class="col-xs-12">
+                    
+                    <!-- TWEETS -->
+                    <div class="widget01 col-xs-4">
+                        <div class="card">
+                            <h4>Tweets</h4>
+                            <div class="element">
+                                <div class="content-empty">
+                                    <img src="https://www.shareicon.net/download/2017/05/30/886506_facebook.ico" alt="">
+                                    <p class="empty">Nenhum tweet</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- DO -->
+                    <div class="widget02 col-xs-4">
+                        <div class="card">
+                            <h4>Personal Tweet</h4>
+                            <div class="element">
+                                    <div class="content-empty">
+                                        <img src="https://www.shareicon.net/download/2017/05/30/886506_facebook.ico" alt="">
+                                        <p class="empty">Nenhum tweet</p>
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI TASKS -->
+                    <div class="widget03 col-xs-4">
+                        <div class="card">
+                            <h4>Task</h4>
+                            <div class="element">
+                                    <div class="content-empty">
+                                        <img src="https://www.shareicon.net/download/2017/05/30/886506_facebook.ico" alt="">
+                                        <p class="empty">Nenhuma task</p>
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+		</div>
+	</div>
+	<script src="http://bit.ly/cdn-bootstrap-minjs"></script>
+</body>
+</html>

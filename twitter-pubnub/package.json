@@ -1,0 +1,19 @@
+{
+  "name": "twitter-pubnub",
+  "version": "1.0.0",
+  "description": "Integracao Twitter & PubNub",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "twitter",
+    "pubnub",
+    "integration"
+  ],
+  "author": "Cécil Malone",
+  "license": "MIT",
+  "devDependencies": {
+    "express": "^4.16.4"
+  }
+}
